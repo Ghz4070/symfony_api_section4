@@ -16,30 +16,32 @@ class Author
      * @ORM\Id()
      * @ORM\GeneratedValue()
      * @ORM\Column(type="integer")
+     * @Groups({"listAuthorFull", "listAuthorSimple"})
      */
     private $id;
 
     /**
      * @ORM\Column(type="string", length=255)
-     * @Groups({"listGenreFull"})
+     * @Groups({"listGenreFull", "listAuthorFull", "listAuthorSimple"})
      */
     private $nom;
 
     /**
      * @ORM\Column(type="string", length=255)
-     * @Groups({"listGenreFull"})
+     * @Groups({"listGenreFull", "listAuthorFull", "listAuthorSimple"})
      */
     private $prenom;
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Nationalite", inversedBy="authors")
      * @ORM\JoinColumn(nullable=false)
-     * @Groups({"listGenreFull"})
+     * @Groups({"listGenreFull", "listAuthorFull", "listAuthorSimple"})
      */
     private $nationalite;
 
     /**
      * @ORM\OneToMany(targetEntity="App\Entity\Book", mappedBy="author")
+     * @Groups({"listAuthorFull"})
      */
     private $books;
 

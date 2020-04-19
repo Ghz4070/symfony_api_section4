@@ -11,7 +11,10 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass="App\Repository\GenreRepository")
- * @UniqueEntity("libelle")
+ * @UniqueEntity(
+ *     fields={"libelle"},
+ *     message="le genre {{ value }}, existe deja, veuillez en saisir un autre."
+ * )
  */
 class Genre
 {
