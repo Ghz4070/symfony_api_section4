@@ -8,19 +8,35 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class ApiGenreController extends AbstractController
 {
+    private $repo;
+    private $serializer;
+    private $em;
+    private $validator;
+
+    public function __construct(GenreRepository $repo, SerializerInterface $serializer,
+                                EntityManagerInterface $em, ValidatorInterface $validator)
+    {
+        $this->repo = $repo;
+        $this->serializer = $serializer;
+        $this->em = $em;
+        $this->validator = $validator;
+    }
+
     /**
      * @Route("/api/genres", name="api_genres", methods={"GET"})
      */
-    public function list(GenreRepository $repo, SerializerInterface $serializer)
+    public function list(): Response
     {
-        $genre = $repo->findAll();
-        $resultat = $serializer->serialize(
+        $genre = $this->repo->findAll();
+        $resultat = $this->serializer->serialize(
             $genre,
             'json',
             [
@@ -34,9 +50,9 @@ class ApiGenreController extends AbstractController
     /**
      * @Route("/api/genres/{id}", name="api_genres_show", methods={"GET"})
      */
-    public function show(Genre $genre, SerializerInterface $serializer)
+    public function show(Genre $genre): Response
     {
-        $resultat = $serializer->serialize(
+        $resultat = $this->serializer->serialize(
             $genre,
             'json',
             [
@@ -50,12 +66,20 @@ class ApiGenreController extends AbstractController
     /**
      * @Route("/api/genres", name="api_genres_create", methods={"POST"})
      */
-    public function create(Request $request, EntityManagerInterface $em, SerializerInterface $serializer)
+    public function create(Request $request): Response
     {
         $data = $request->getContent();
-        $genre = $serializer->deserialize($data, Genre::class, 'json');
-        $em->persist($genre);
-        $em->flush();
+        $genre = $this->serializer->deserialize($data, Genre::class, 'json');
+
+        // Gestion des erreurs
+        $errors = $this->validator->validate($genre);
+        if (count($errors)) {
+            $errorJson = $this->serializer->serialize($errors, 'json');
+            return new JsonResponse($errorJson, Response::HTTP_BAD_REQUEST, [], true);
+        }
+
+        $this->em->persist($genre);
+        $this->em->flush();
 
         return new JsonResponse(
             "Le genre a bien été crée",
@@ -69,12 +93,20 @@ class ApiGenreController extends AbstractController
     /**
      * @Route("/api/genres/{id}", name="api_genres_update", methods={"PUT"})
      */
-    public function update(Genre $genre, Request $request, EntityManagerInterface $em, SerializerInterface $serializer)
+    public function update(Request $request, Genre $genre): Response
     {
         $data = $request->getContent();
-        $serializer->deserialize($data, Genre::class, 'json', ['object_to_populate' => $genre]);
-        $em->persist($genre);
-        $em->flush();
+        $this->serializer->deserialize($data, Genre::class, 'json', ['object_to_populate' => $genre]);
+
+        // Gestion des erreurs
+        $errors = $this->validator->validate($genre);
+        if (count($errors)) {
+            $errorJson = $this->serializer->serialize($errors, 'json');
+            return new JsonResponse($errorJson, Response::HTTP_BAD_REQUEST, [], true);
+        }
+
+        $this->em->persist($genre);
+        $this->em->flush();
 
         return new JsonResponse(
             "Le genre a bien été modifier",
@@ -86,10 +118,10 @@ class ApiGenreController extends AbstractController
     /**
      * @Route("/api/genres/{id}", name="api_genres_delete", methods="DELETE")
      */
-    public function delete(Genre $genre, EntityManagerInterface $em)
+    public function delete(Genre $genre): Response
     {
-        $em->remove($genre);
-        $em->flush();
+        $this->em->remove($genre);
+        $this->em->flush();
 
         return new JsonResponse("Le genre a bien été supprimer", Response::HTTP_OK, []);
     }
