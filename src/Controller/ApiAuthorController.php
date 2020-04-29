@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Author;
 use App\Repository\AuthorRepository;
+use App\Repository\NationaliteRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,14 +20,17 @@ class ApiAuthorController extends AbstractController
     private $serializer;
     private $em;
     private $validator;
+    private $nationaliteRepository;
 
     public function __construct(AuthorRepository $repo, SerializerInterface $serializer,
-                                EntityManagerInterface $em, ValidatorInterface $validator)
+                                EntityManagerInterface $em, ValidatorInterface $validator,
+                                NationaliteRepository $nationaliteRepository)
     {
         $this->repo = $repo;
         $this->serializer = $serializer;
         $this->em = $em;
         $this->validator = $validator;
+        $this->nationaliteRepository = $nationaliteRepository;
     }
 
     /**
@@ -95,7 +99,12 @@ class ApiAuthorController extends AbstractController
     public function update(Request $request, Author $author): Response
     {
         $data = $request->getContent();
+
+        $dataTab = $this->serializer->decode($data, 'json');
+        $nationalite = $this->nationaliteRepository->find($dataTab['nationalite']['id']);
+
         $this->serializer->deserialize($data, Author::class, 'json', ['object_to_populate' => $author]);
+        $author->setNationalite($nationalite);
 
         // Gestion des erreurs
         $errors = $this->validator->validate($author);
